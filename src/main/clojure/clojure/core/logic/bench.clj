@@ -430,7 +430,7 @@
 (comment
   (time (doall (dinesmanfd)))
   ;; close to 2X faster than Petite Chez
-  ;; ~1942ms
+  ;; ~1780ms
   (dotimes [_ 5]
     (time
      (dotimes [_ 1000]
@@ -467,7 +467,7 @@
 
   (simple-fd-eq)
 
-  ;; 620ms
+  ;; ~410ms
   (dotimes [_ 10]
     (time
      (dotimes [_ 1e3] 
@@ -539,7 +539,7 @@
 (comment
   (time (doall (matches 40)))
 
-  ;; ~6.3s
+  ;; ~6.2s
   (dotimes [_ 5]
     (time
      (dotimes [_ 1000]
@@ -585,7 +585,7 @@
             sq1 sq2 sq3 sq4])))))
 
 (comment
-  ;; 1.9s
+  ;; ~1.74s
   (dotimes [_ 10]
     (time
      (dotimes [_ 1e3] 
@@ -704,13 +704,13 @@
 
   (-> (sudokufd easy0) first verify)
 
-  ;; ~900ms w/o distribute
+  ;; ~850ms w/o distribute
   (dotimes [_ 5]
     (time
      (dotimes [_ 100]
        (doall (sudokufd easy0)))))
 
-  ;; ~1000ms w/o distribute
+  ;; ~950ms w/o distribute
   (dotimes [_ 5]
     (time
      (dotimes [_ 100]
@@ -759,8 +759,8 @@
 
   (-> (sudokufd hard1) first verify)
 
-  ;; ~2.5 seconds w/o distribute
-  ;; < 260ms w/ distribute, nearly 10X faster
+  ;; ~2.2 seconds w/o distribute
+  ;; < 250ms w/ distribute, nearly 10X faster
   (dotimes [_ 5]
     (time
      (dotimes [_ 10]
@@ -780,7 +780,7 @@
      0 0 7  0 0 0  0 0 5
      0 0 0  0 0 0  0 9 8])
 
-  ;; ~.9s w/ distribute
+  ;; <900ms w/ distribute
   (time (doall (sudokufd hard2)))
 
   (-> (sudokufd hard2) first print-solution)
@@ -802,8 +802,8 @@
      0 0 0  0 0 0  0 0 5
      0 3 4  0 9 0  7 1 0])
 
-  ;; ~13ms w/o distribute
-  ;; ~18ms w/ distribute
+  ;; <1300ms w/o distribute
+  ;; ~1800ms w/ distribute
   (dotimes [_ 5]
     (time
       (dotimes [_ 100]
@@ -840,7 +840,7 @@
         (< c9 c8)))
     (safefd))
 
-  ;; ~2300ms
+  ;; <2300ms
   (dotimes [_ 5]
     (time
       (dotimes [_ 100] 

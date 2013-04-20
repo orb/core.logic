@@ -82,10 +82,13 @@
 (declare lvar? bindable? add-var)
 
 (defn var-rands [a c]
-  (->> (-rands c)
-    (map #(root-var a %))
-    (filter lvar?)
-    (into [])))
+  ;; NOTE: we cache ::var-rands in addcg, this avoids the overhead of
+  ;; of the root-var calls if we already seen the constraint before - David
+  (or (-> c meta ::var-rands)
+      (->> (-rands c)
+        (map #(root-var a %))
+        (filter lvar?)
+        (into []))))
 
 (defn unbound-rands [a c]
   (->> (var-rands a c)
@@ -148,7 +151,9 @@
 
   (constraints-for [this a x ws]
     (when-let [ids (get km (root-var a x))]
-      (filter #((-watched-stores %) ws) (map cm (remove running ids)))))
+      ;; NOTE: this means constraints may have been removed already - David
+      (filter #(and % ((-watched-stores %) ws))
+        (map cm (remove running ids)))))
 
   (migrate [this x root]
     (let [xcs    (km x)
@@ -2151,9 +2156,11 @@
 
 (defn addcg [c]
   (fn [a]
-    (let [a (reduce (fn [a x]
+    ;; NOTE: cache var-rands here in the metadata - David
+    (let [c (vary-meta c assoc ::var-rands (var-rands a c))
+          a (reduce (fn [a x]
                       (ext-no-check a x (subst-val ::unbound)))
-              a (unbound-rands a c))]
+               a (unbound-rands a c))]
       (assoc a :cs (addc (:cs a) a c)))))
 
 (defn updatecg [c]
