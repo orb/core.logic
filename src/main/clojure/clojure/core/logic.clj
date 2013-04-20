@@ -382,6 +382,18 @@
 
             :else (recur vp (find s vp)))))
       v))
+
+  (root-binding [this v]
+    (loop [lv v [v vp :as me] (find s v)]
+      (cond
+        (nil? me) [lv lv]
+
+        (not (lvar? vp))
+        (if (subst-val? vp)
+          [(with-meta v (meta vp)) vp]
+          me)
+
+        :else (recur vp (find s vp)))))
   
   (ext-run-cs [this x v]
     (let [x  (root-var this x)
@@ -415,16 +427,14 @@
   (take* [this] this))
 
 (defn add-attr [s x attr attrv]
-  (let [x (root-var s x)
-        v (root-val s x)]
+  (let [[x v] (root-binding s x)]
     (if (subst-val? v)
       (update-var s x (assoc-meta v attr attrv))
       (let [v (if (lvar? v) ::unbound v)]
         (ext-no-check s x (with-meta (subst-val v) {attr attrv}))))))
 
 (defn rem-attr [s x attr]
-  (let [x (root-var s x)
-        v (root-val s x)]
+  (let [[x v] (root-binding s x)]
     (if (subst-val? v)
       (let [new-meta (dissoc (meta v) attr)]
         (if (and (zero? (count new-meta)) (not= (:v v) ::unbound))
@@ -451,45 +461,48 @@
 
 (defn add-dom
   ([s x dom domv]
-     (let [x (root-var s x)]
-       (add-dom s x dom domv nil)))
-  ([s x dom domv seenset]
-     (let [v (root-val s x)
-           s (if (subst-val? v)
+     (let [[x v] (root-binding s x)]
+       (add-dom s x v dom domv nil)))
+  ([s x v dom domv seenset]
+     (let [s (if (subst-val? v)
                (update-var s x (assoc-dom v dom domv))
                (let [v (if (lvar? v) ::unbound v)]
                  (ext-no-check s x (subst-val v {dom domv}))))]
        (sync-eset s v seenset
-         (fn [s y] (add-dom s y dom domv (conj (or seenset #{}) x)))))))
+         (fn [s y]
+           (let [[y v] (root-binding s y)]
+             (add-dom s y v dom domv (conj (or seenset #{}) x))))))))
 
 (defn update-dom
   ([s x dom f]
-     (let [x (root-var s x)]
-       (update-dom s x dom f nil)))
-  ([s x dom f seenset]
-     (let [v (root-val s x)
-           v (if (lvar? v)
+     (let [[x v] (root-binding s x)]
+       (update-dom s x v dom f nil)))
+  ([s x v dom f seenset]
+     (let [v (if (lvar? v)
                (subst-val ::unbound)
                v)
            doms (:doms v)
            s (update-var s x (assoc-dom v dom (f (get doms dom))))]
        (sync-eset s v seenset
-         (fn [s y] (update-dom s y dom f (conj (or seenset #{}) x)))))))
+         (fn [s y]
+           (let [[y v] (root-binding s y)]
+             (update-dom s y v dom f (conj (or seenset #{}) x))))))))
 
 (defn rem-dom
   ([s x dom]
-     (let [x (root-var s x)]
-       (rem-dom s x dom nil)))
-  ([s x dom seenset]
-     (let [v (root-val s x)
-           s (if (subst-val? v)
+     (let [[x v] (root-binding s x)]
+       (rem-dom s x v dom nil)))
+  ([s x v dom seenset]
+     (let [s (if (subst-val? v)
                (let [new-doms (dissoc (:doms v) dom)]
                  (if (and (zero? (count new-doms)) (not= (:v v) ::unbound))
                    (update-var s x (:v v))
                    (update-var s x (assoc v :doms new-doms))))
                s)]
        (sync-eset s v seenset
-         (fn [s y] (rem-dom s y dom (conj (or seenset #{}) x)))))))
+         (fn [s y]
+           (let [[y v] (root-binding s y)]
+             (rem-dom s y v dom (conj (or seenset #{}) x))))))))
 
 ;; NOTE: I don't think we need to bother returning ::not-dom or some other
 ;; not found value. Assume the case where the var is bound to nil in 
@@ -551,7 +564,8 @@
                         (-merge-doms domv xdomv))]
             (when ndomv
               (recur (next doms)
-                (add-dom s x dom ndomv #{})))))
+                (let [[x v] (root-binding s x)]
+                  (add-dom s x v dom ndomv #{}))))))
         s))))
 
 (defn update-eset [s doms eset]
@@ -592,10 +606,10 @@
     (subst-val ::unbound)))
 
 (defn entangle [s x y]
-  (let [x  (root-var s x)
-        y  (root-var s y)
-        xv (to-subst-val (root-val s x))
-        yv (to-subst-val (root-val s y))]
+  (let [[x xv] (root-binding s x)
+        [y yv] (root-binding s y)
+        xv (to-subst-val xv)
+        yv (to-subst-val yv)]
     (-> s
       (update-var x (assoc xv :eset (conj (or (:eset xv) #{}) y)))
       (update-var y (assoc yv :eset (conj (or (:eset yv) #{}) x))))))

@@ -112,6 +112,7 @@
 (defprotocol ISubstitutionsCLP
   (root-val [this x])
   (root-var [this x])
+  (root-binding [this x])
   (ext-run-cs [this x v])
   (queue [this c])
   (update-var [this x v]))
