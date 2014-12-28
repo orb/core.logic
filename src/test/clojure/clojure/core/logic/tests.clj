@@ -371,6 +371,36 @@
         m2 (struct-map foo-struct :a 1 :b 3)]
     (is (= (unify empty-s m1 m2) nil))))
 
+;; -----------------------------------------------------------------------------
+;; set
+
+(deftest unify-set-object
+  (is (= (unify empty-s #{} 1) nil)))
+
+(deftest unify-set-lvar-1
+  (let [x (lvar 'x)
+        os (ext-no-check empty-s x #{})]
+    (is (= (unify empty-s #{} x) os))))
+
+(deftest unify-set-lcons-1
+  (let [x (lvar 'x)]
+    (is (= (unify empty-s #{} (lcons 1 x)) nil))))
+
+(deftest unify-set-seq-1
+  (is (= (unify empty-s #{} '()) nil)))
+
+(deftest unify-set-map-1
+  (is (= (unify empty-s #{} {}) nil)))
+
+(deftest unify-set-set-1
+  (is (= (unify empty-s #{} #{}) empty-s)))
+
+(deftest unify-set-set-2
+  (is (= (unify empty-s #{1 2 3 4} #{4 3 2 1}) empty-s)))
+
+(deftest unify-set-set-3
+  (is (= (unify empty-s #{1 2} #{1 2 3 4}) nil)))
+
 ;; =============================================================================
 ;; walk
 
@@ -1835,6 +1865,12 @@
            (== y {:baz "woz"})
            (== (partial-map {:foo x}) {:foo y}))
         '([{:baz "woz"} {:baz "woz"}]))))
+
+(deftest test-154-walk-set
+  (is (= (run* [x] (== x #{}))
+         '(#{})))
+  (is (= (run* [x] (== x #{1 2 3}))
+         '(#{1 2 3}))))
 
 ;; =============================================================================
 ;; cKanren

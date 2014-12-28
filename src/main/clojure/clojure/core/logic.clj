@@ -984,10 +984,19 @@
   (walk-term [v f] (f v))
 
   clojure.lang.ISeq
-   (walk-term [v f]
-     (with-meta
-       (doall (map #(walk-term (f %) f) v))
-       (meta v)))
+  (walk-term [v f]
+    (with-meta
+      (doall (map #(walk-term (f %) f) v))
+      (meta v)))
+
+  clojure.lang.IPersistentSet
+  (walk-term [v f]
+    (with-meta
+      (loop [v v r (transient #{})]
+        (if (seq v)
+          (recur (next v) (conj! r (walk-term (f (first v)) f)))
+          (persistent! r)))
+      (meta v)))
 
   clojure.lang.IPersistentVector
   (walk-term [v f]
