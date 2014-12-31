@@ -548,6 +548,9 @@
         (persistent! r))))
 
   PersistentHashMap
+  (-walk-term [v s] (walk-term-map* v s))
+
+  PersistentArrayMap
   (-walk-term [v s] (walk-term-map* v s)))
 
 ;; =============================================================================
