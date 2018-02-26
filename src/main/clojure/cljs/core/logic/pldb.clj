@@ -1,4 +1,5 @@
-(ns cljs.core.logic.pldb)
+(ns cljs.core.logic.pldb
+  (:refer-clojure :exclude [indexed?]))
 
 (defn indexed? [v]
   (true? (:index (meta v))))
